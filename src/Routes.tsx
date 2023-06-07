@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, defer } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { ProductsPage } from './pages/ProductsPage';
 import App from './App';
@@ -7,9 +7,13 @@ import { ErrorPage } from './pages/Errorpage';
 import { HomePage } from './pages/HomePage';
 import { ContactPage } from './ContactPage';
 import { ThankYouPage } from './ThankYouPage';
+import { PostsPage } from './posts/PostsPage';
+import { getPosts } from './posts/getPosts';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 
+const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
     path: '/',
@@ -46,10 +50,27 @@ const router = createBrowserRouter([
         path: 'thank-you/:name',
         element: <ThankYouPage />,
       },
+      {
+        path: 'posts',
+        element: <PostsPage />,
+        loader: async () => {
+          const existingData = queryClient.getQueryData(['postsData']);
+          if (existingData) {
+            return defer({ posts: existingData });
+          }
+          return defer({
+            posts: queryClient.fetchQuery(['postsData'], getPosts),
+          });
+        },
+      },
     ],
   },
 ]);
 
 export function Routes() {
-  return <RouterProvider router={router} />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />;
+    </QueryClientProvider>
+  );
 }
