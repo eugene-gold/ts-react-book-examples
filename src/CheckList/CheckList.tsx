@@ -1,13 +1,15 @@
 import React, { ComponentPropsWithoutRef, ReactNode } from 'react';
 import { IdValue } from './types';
 import { useChecked } from './useChecked';
+import { isChecked } from './isChecked';
+import { assertValueCanBeRendered } from './assertValueCanBeRendered';
 
 type Props<Data> = {
   data: Data[];
   id: keyof Data;
   primary: keyof Data;
   secondary: keyof Data;
-  renderItem?: (item: Data) => ReactNode;
+  renderItem?: (item: Data, isChecked: boolean) => ReactNode;
   checkedIds?: IdValue[];
   onCheckedIdsChange?: (checkedIds: IdValue[]) => void;
 } & ComponentPropsWithoutRef<'ul'>;
@@ -27,17 +29,14 @@ export function CheckList<Data>({
   return (
     <ul className="bg-gray-300 rounded p-10" {...ulProps}>
       {data.map((item) => {
-        if (renderItem) {
-          return renderItem(item);
-        }
         const idValue = item[id] as unknown;
-        if (typeof idValue !== 'string' && typeof idValue !== 'number') {
-          return null;
+        assertValueCanBeRendered(idValue);
+        if (renderItem) {
+          return renderItem(item, isChecked(resolvedCheckedIds, idValue));
         }
+
         const primaryText = item[primary] as unknown;
-        if (typeof primaryText !== 'string') {
-          return null;
-        }
+        assertValueCanBeRendered(primaryText);
         const secondaryText = item[secondary] as unknown;
 
         return (
@@ -45,8 +44,9 @@ export function CheckList<Data>({
             <label className="flex items-center">
               <input
                 type="checkbox"
-                checked={resolvedCheckedIds.includes(idValue)}
+                checked={isChecked(resolvedCheckedIds, idValue)}
                 onChange={handleCheckChange(idValue)}
+                data-testid={`CheckList__input__${idValue.toString()}`}
               />
               <div className="ml-2">
                 <div className="text-xl text-gray-800 pb-1">{primaryText}</div>
